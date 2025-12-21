@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id           String          @id @default(uuid())
+  name         String
+  email        String          @unique
+  password     String
+  isActive     Boolean         @default(true)
+  lastLogin    DateTime?
+  roleId       String
+  role         Role            @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
+  clients      Client[]        @relation("CreatedClients")
+  projects     Project[]       @relation("OwnedProjects")
+  auditLogs    AuditLog[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Client {
+  id         String      @id @default(uuid())
+  name       String
+  email      String?
+  phone      String?
+  status     ClientStatus
+  createdBy  String
+  creator    User        @relation("CreatedClients", fields: [createdBy], references: [id])
+  projects   Project[]
+  tags       ClientTagPivot[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@map("clients")
+}
+
+model ClientTag {
+  id        String            @id @default(uuid())
+  name      String            @unique
+  color     String
+  clients   ClientTagPivot[]
+  createdAt DateTime          @default(now())
+
+  @@map("client_tags")
+}
+
+model ClientTagPivot {
+  clientId String
+  tagId    String
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  tag      ClientTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([clientId, tagId])
+  @@map("client_tag_pivot")
+}
+
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  status      ProjectStatus
+  startDate   DateTime
+  endDate     DateTime?
+  clientId    String
+  ownerId     String
+  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  owner       User          @relation("OwnedProjects", fields: [ownerId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("projects")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+enum ClientStatus {
+  active
+  prospect
+  inactive
+}
+
+enum ProjectStatus {
+  active
+  paused
+  completed
+}
