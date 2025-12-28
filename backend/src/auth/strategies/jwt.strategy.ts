@@ -13,6 +13,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    return payload; // aquí podrías hacer fetch a la DB si quieres
+    return payload; 
   }
 }
